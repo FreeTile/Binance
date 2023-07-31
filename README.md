@@ -7,7 +7,7 @@ Neural Network for trading
 Sorry, there is a lot of junk in my code, its my first try to create working neural network.
 
 ## Overall
-There are some scripts that can automatically buy and sell kryptocurrency based on neural network. All of you need are API key and API secret from your Binance account, how to create it you can find (https://www.binance.com/en/support/faq/how-to-create-api-keys-on-binance-360002502072 "here"). This project already have 1 best individual for traning and one traned model, so you can just run Trading.py with your API settings. More details about each script are written after Getting start
+There are some scripts that can automatically buy and sell kryptocurrency based on neural network. All of you need are API key and API secret from your Binance account, how to create it you can find [here](https://www.binance.com/en/support/faq/how-to-create-api-keys-on-binance-360002502072). This project already have 1 best individual for traning and one traned model, so you can just run Trading.py with your API settings. More details about each script are written after Getting start
 
 ## Getting start
 There is two scripts that can't use in the next paragraph, Average_shadows and LoadData. Average shadows calculate average number betwen open price and lowest price and betwen highest price and close price or vice versa.
