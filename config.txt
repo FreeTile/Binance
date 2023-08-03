@@ -1,0 +1,17 @@
+For_all
+api_key = Your API key here
+api_secret = Your API secret here
+block_size = 20
+date = 1800 days ago UTC
+
+Genetic_algorithm
+population_size = 10
+num_generations = 10
+mutation_rate = 0.2
+
+Trading
+model = models/trained_model.h5
+
+Training
+from = models/best_individual.pkl
+save = models/trained_model.h5
