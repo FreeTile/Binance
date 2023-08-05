@@ -1,6 +1,6 @@
 For_all
-api_key = pg1LIrJdMmlxlvEARsTC9DdRcTRE1Xt4RtFMUxzFcb2DhAyYzxlUQNzBLOAPueUE
-api_secret = w0iliqZHvytesohwZ1qBL8LmPr7cz8nlgTiQQLhG2dhRZj94DyB2iA0nmNj3R53b
+api_key = Your api key
+api_secret = Your api secret
 block_size = 20
 date = 1080 days ago UTC
 
