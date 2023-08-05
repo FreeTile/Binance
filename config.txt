@@ -1,8 +1,8 @@
 For_all
-api_key = Your API key here
-api_secret = Your API secret here
+api_key = pg1LIrJdMmlxlvEARsTC9DdRcTRE1Xt4RtFMUxzFcb2DhAyYzxlUQNzBLOAPueUE
+api_secret = w0iliqZHvytesohwZ1qBL8LmPr7cz8nlgTiQQLhG2dhRZj94DyB2iA0nmNj3R53b
 block_size = 20
-date = 1800 days ago UTC
+date = 1080 days ago UTC
 
 Genetic_algorithm
 population_size = 10

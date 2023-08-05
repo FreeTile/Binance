@@ -1,12 +1,11 @@
 import time
+import datetime
 import tensorflow as tf
 import numpy as np
 import pandas as pd
-from binance import Client, ThreadedWebsocketManager, ThreadedDepthCacheManager
-from binance.enums import ORDER_TYPE_STOP_LOSS_LIMIT
+from binance import Client
 from sklearn.preprocessing import StandardScaler
 import os
-
 
 lines = []
 variables = {}
@@ -153,116 +152,111 @@ def orders():
     else:
         print("Нет открытых ордеров")
 
+def close_all_orders():
+    open_orders = client.get_open_orders()
+    for order in open_orders:
+        symbol = order['symbol']
+        order_id = order['orderId']
+        result = client.cancel_order(symbol=symbol, orderId=order_id)
+        if result['status'] == "CANCELED":
+            print(f"Ордер {order_id} на символ {symbol} успешно закрыт.")
 
 def clear_console():
     # Очищаем консоль в зависимости от операционной системы
     os.system('cls' if os.name == 'nt' else 'clear')
 
-
 sell_amount = 0
 buy_amount = 0
 
-
-# Функция для запуска скрипта каждые 5 минут
-def run_script():
-    global sell_amount, buy_amount
-    return_balance()
-    while True:
-        candles = get_recent_candles()
-        prediction = process_candles(candles)
-        clear_console()
-        BTC = client.get_asset_balance(asset='BTC')
-        USDT = client.get_asset_balance(asset='USDT')
-        print('BTC balance: ', BTC["free"])
-        print('USDT balance: ', USDT["free"])
-        info = client.get_avg_price(symbol='BTCUSDT')
-        orders()
-        print("BTC price: ", info["price"])
-        if np.array_equal(prediction[0], [1, 0]):
-            buy(float(USDT["free"]), info)
-        else:
-            sell(float(BTC["free"]), info)
-        current_time = int(time.time())
-        next_run_time = ((current_time // 300) + 1) * 300  # Округление до следующего времени, кратного 5 минутам
-        sleep_time = next_run_time - current_time
-        time.sleep(sleep_time)
-
-
-def return_balance():
-    BTC = client.get_asset_balance(asset='BTC')
-    if float(BTC["free"]) < 1:
-        amount = 1 - float(BTC["free"])
-        amount = round(amount, 6)
-        order = client.order_market_buy(
+def stop_loss_order(side, stop_price, amount):
+    if side == "buy":
+        order = client.create_order(
             symbol='BTCUSDT',
-            quantity=amount
+            side=Client.SIDE_BUY,
+            type=Client.ORDER_TYPE_STOP_LOSS_LIMIT,
+            timeInForce=Client.TIME_IN_FORCE_GTC,
+            quantity=amount,
+            stopPrice=stop_price,
+            price=stop_price + 5,
         )
-    elif float(BTC["free"]) > 1:
-        amount = float(BTC["free"]) - 1
-        amount = round(amount, 6)
-        order = client.order_market_sell(
+    elif side == "sell":
+        order = client.create_order(
             symbol='BTCUSDT',
-            quantity=amount
+            side=Client.SIDE_SELL,
+            type=Client.ORDER_TYPE_STOP_LOSS_LIMIT,
+            timeInForce=Client.TIME_IN_FORCE_GTC,
+            quantity=amount,
+            stopPrice=stop_price,
+            price=stop_price - 5,
         )
 
-
-def buy(balance_USDT, info):
-    global sell_amount, buy_amount
-    if sell_amount > 0:
-        sell_amount = round(sell_amount, 6)
-        order = client.order_market_buy(
-            symbol='BTCUSDT',
-            quantity=sell_amount
-        )
-        sell_amount = 0
-    # Расчет суммы покупки (1% от баланса USDT)
-    amount = balance_USDT * 0.1 * 0.5
-    amount = max(amount, 11)
-    amount = round(amount, 6)
-    buy_amount += amount
-    stop_loss_price = round((float(info["price"])-10.5), 6) # Рассчитываем цену Stop Loss
-    # Отправка рыночной заявки на покупку
+def buy(amount):
+    print("Покупка на сумму ", amount)
     order = client.order_market_buy(
         symbol='BTCUSDT',
         quoteOrderQty=amount,
     )
-    order = client.create_order(
-        symbol='BTCUSDT',
-        side=Client.SIDE_SELL,
-        type=Client.ORDER_TYPE_STOP_LOSS,
-        quoteOrderQty=amount,
-        stopPrice = stop_loss_price
-    )
 
-
-def sell(balance_BTC, info):
-    global sell_amount, buy_amount
-    if buy_amount > 0:
-        buy_amount = round(buy_amount, 6)
-        order = client.order_market_sell(
-            symbol='BTCUSDT',
-            quoteOrderQty=buy_amount
-        )
-        buy_amount = 0
-    # Расчет суммы продажи (1% от баланса BTC)
-    amount = balance_BTC * 0.1 * 0.8
-    amount = max((11 / float(info["price"])), amount)
-    amount = round(amount, 6)
-    sell_amount += amount
-    stop_loss_price = round((float(info["price"])+10), 6)
-    # Отправка рыночной заявки на продажу
+def sell(amount, info):
+    print("Продажа на сумму ", round(amount * float(info["price"]),2))
     order = client.order_market_sell(
         symbol='BTCUSDT',
         quantity=amount,
     )
-    order = client.create_order(
-        symbol='BTCUSDT',
-        side=Client.SIDE_BUY,
-        type=Client.ORDER_TYPE_STOP_LOSS,
-        quantity=amount,
-        stopPrice=stop_loss_price
-    )
 
+def run_script():
+    global sell_amount, buy_amount
+    while True:
+        print("Текущее время:", datetime.datetime.now())
+        close_all_orders()
+        candles = get_recent_candles()
+        prediction = process_candles(candles)
+        clear_console()
+
+        BTC_info = client.get_asset_balance(asset='BTC')
+        USDT_info = client.get_asset_balance(asset='USDT')
+        BTC = round(float(BTC_info["free"]), 5)
+        USDT = round(float(USDT_info["free"]), 2)
+        print('BTC balance: ', BTC)
+        print('USDT balance: ', USDT)
+
+        info = client.get_avg_price(symbol='BTCUSDT')
+        print("BTC price: ", info["price"])
+
+        balance = round(float(USDT_info["free"]) + float(BTC_info["free"]) * float(info["price"]), 2)
+        print("Примерный баланс в USDT", balance)
+
+        with open("profit.txt", 'a') as file:
+            file.write(str(balance) + '\n')
+
+        if np.array_equal(prediction[0], [1, 0]):
+            print("Предсказание: цена поднимается")
+            """if sell_amount > 0 and (sell_amount * float(info["price"])) > USDT+0.5:
+                sell_amount = round(sell_amount * float(info["price"]), 2)
+                buy(sell_amount)
+            sell_amount = 0"""
+            amount = round(max(USDT / 10, 10.2), 2)
+            if USDT > 10.1:
+                buy(amount)
+                stop_loss_order("sell", round(float(info["price"]) - 20, 2), round(amount / float(info["price"]), 5))
+                buy_amount += amount
+        else:
+            print("Предсказание: цена упадёт")
+            """if buy_amount > 0 and buy_amount > (BTC * float(info["price"]) + 0.5):
+                buy_amount = round(buy_amount / float(info["price"]), 5)
+                sell(buy_amount, info)
+            buy_amount = 0"""
+            amount = round(max(BTC / 10, 10.2 / float(info["price"])), 5)
+            if BTC > (10.1 / float(info["price"])):
+                sell(amount, info)
+                stop_loss_order("buy", round(float(info["price"]) + 20, 2), amount)
+                sell_amount += amount
+        orders()
+
+        current_time = int(time.time())
+        next_run_time = ((current_time // 300) + 1) * 300  # Округление до следующего времени, кратного 5 минутам
+        sleep_time = next_run_time - current_time
+        time.sleep(sleep_time)
 
 # Запуск скрипта
 run_script()

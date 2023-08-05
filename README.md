@@ -20,24 +20,24 @@ LoadData is self-explanatory, it's loads data :D and it converts it into the for
 ## How it works
 
 ### Genetic Algorithm
-This is the hardest script of this project (for you and for your PC :D ). In "config.txt" you can find settings for it between the lines 7-10. There we have the number of generations and the population size. The latter means how many models will be created in one generation. Every model has its own number of layers, types of layers, batch size, etc. After creating all models script looks for the best models using the loss rate and the accuracy rate of each model. After this step it crosses them together and some of the crossed individuals mutate. The mutation rate parameter is also located in "config.txt". 0.2 means that an individual will mutate in 20% of cases. In the end of every population the best model is saved in "models/best_individual.pkl", so if something goes wrong and your PC turns off, you will have the last best model saved. 
+This is the hardest script of this project (for you and for your PC :D ). In config.txt you can find settings for it at lines 7-10. We have numbers of generations and population size. The second mean how much model will be created at one generation. Every model has it own number of layers, types of layers, bathc size etc. After creating all models script looking for some best models using loss rate and accuracy rate. After this step it cross them together and some of crossed individuals are mutated. Rate of mutation also located in config.txt. 0.2 mean that individual will mutate in 20% cases. In the end of every population the best model saving in "models/best_individual.pkl", so if there was something wrong and your PC turned off, you will have the last best model. 
 #### Notice
-In this script epochs are static and their value is 15. In TrainBestModel.py the number of epochs is 50, keep that in mind.
+In this script epochs are static and its value is 15. In TrainBestModel.py number of epochs are 50, keep it in mind.
 
 ### Train Best Model
-Since you already have best model for traning, you can run this script. It takes data from "train_data.npy" and true values from "train_labels.npy". Then it divide "train_data" and "train_labels" into blocks, each blocks size is recorded in the "batch_size" parameter. It is necessary to reduce RAM usage, because if you don't have enough RAM, there will be an error. In the end it saves a trained model into "models/trained_model.h5".
+As you already have best model for traning, you can run this script. It takes data from train_data.npy and true values from train_labels.npy. Then it divide train_data and train_labels into blocks of batch size. It need to save RAM, because if you dont have anought RAM, there will be error. At the end it save trained model into "models/trained_model.h5".
 
 ### Trading
-This is one of the main scripts. It connects to the Binance API using your API key and API secret. Then it starts the cycle:
+This is one of the main scripts. It connects to the Binance API using your API key and API secret. Then it start cicle
 1. Close all open orders
-2. Get the previous 21 candlesticks (the candlestick wich is trading at the moment of the cycle run is not taken into consideration).
-3. The neural network gives us a prediction whether the next candlestick will go up or down
-4. Using the prediction the script sends a request to buy or sell BTC, also it sends a stop loss request in case the price go down instead of up, so we don't lose a lot of money if it makes an incorrect prediction.
-If there were several candelsticks with the same direction and the model predicts that the next candlestick will go in the opposite direction, the script will return all the funds into the default state before making the next trade. (The default state is a state when 50% of balance is in USDT and 50% is in BTC, so the script can trade without problems)
-5. The next cycle doesn't start immediately. Since the candelstick charts that the neural network uses refresh every 5 minutes, the cycle can be repeated only in a period of time divisible by 5.
+2. Get 21 previous candles, the last candle still trading so we don't take it into prediction.
+3. Neural Network give us a prediction of the next candle, will go it up or down
+4. Using prediction script send request to buy or sell BTC, also it sell stop loss request in case if price go down instead up, so we won't lose a lot of money if it make a wrong prediction.
+If there was several candels with one direction and the model predict that the next candle will go viceverse, first of all script will return all funds in state before running the script.
+5. In the end it takes time before next cicle. As we trade with 5 min candles, it repeats every time the time is a multiple of 5 minutes.
 
 ### Average shadows
-This script calculates the average upper and lower shadows of every candelstick using "train_data.npy". This parameter can be used for calculating stop loss prices in "Trading.py". If you have "train_data.npy", you can run it and remember average numbers of upper and lower shadows.
+This script calculate average up and down shadows of every candel using train_data.npy. This parameter can be used for calculating stop loss prices in Trading.py. If you have train_data.npy, you can run it and remember average numbers of up and down shadows.
 
 ### LoadData
-This script loads data by sending the request using Binance API and saves it to "data/train_data.npy" and "data/train_labels.npy". "Train_data" is an array of open, high, low, close prices, volume of tradings, closing times for each candelsticks, numbers of trades, Directional Movement index, momentum etc. It contains data in blocks, each block consists of 20 charts and for each block there are true values in "Train_labels". Using both files you can use "Genetic_Algorithm.py", "TrainBestModel.py", "Average_Shadows.py" and "Trading.py" scripts. This file downloads data for the last 5 years, and you can change this parameter in "config.txt", this parameter should be written in days, not in years (maybe it can be used with years too, but I prefer to use it with days)
+This script loads data by sending request using Binance API and save it to train_data.npy and train_labels.npy. Train_data is a massive of open, high, low, close prices, volume of tradings, close time, numbers of trades, Directional Movement index, momentum etc. It contain it in blocks each have 20 charts and for each this block there is we have Train_labels, which has true value for each block from Train_data. Using both files you can use Genetic Algorithm, TrainBestModel, Average Shadows and Trading scripts. This file downloads data for 5 years ago, you can change this parameter in config.txt, this parameter should be in days, not in years (maybe it can be used with years too, but I prefer use it writing days)
