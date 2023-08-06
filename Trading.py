@@ -231,23 +231,23 @@ def run_script():
 
         if np.array_equal(prediction[0], [1, 0]):
             print("Предсказание: цена поднимается")
-            """if sell_amount > 0 and (sell_amount * float(info["price"])) > USDT+0.5:
+            if sell_amount > 0 and (sell_amount * float(info["price"])) > USDT+0.5:
                 sell_amount = round(sell_amount * float(info["price"]), 2)
                 buy(sell_amount)
-            sell_amount = 0"""
-            amount = round(max(USDT / 10, 10.2), 2)
-            if USDT > 10.1:
+            sell_amount = 0
+            amount = round(max(USDT / 10, 10.1), 2)
+            if USDT > 10.15:
                 buy(amount)
                 stop_loss_order("sell", round(float(info["price"]) - 20, 2), round(amount / float(info["price"]), 5))
                 buy_amount += amount
         else:
             print("Предсказание: цена упадёт")
-            """if buy_amount > 0 and buy_amount > (BTC * float(info["price"]) + 0.5):
+            if buy_amount > 0 and buy_amount > (BTC * float(info["price"]) + 0.5):
                 buy_amount = round(buy_amount / float(info["price"]), 5)
                 sell(buy_amount, info)
-            buy_amount = 0"""
-            amount = round(max(BTC / 10, 10.2 / float(info["price"])), 5)
-            if BTC > (10.1 / float(info["price"])):
+            buy_amount = 0
+            amount = round(max(BTC / 10, 10.1 / float(info["price"])), 5)
+            if BTC > (10.15 / float(info["price"])):
                 sell(amount, info)
                 stop_loss_order("buy", round(float(info["price"]) + 20, 2), amount)
                 sell_amount += amount

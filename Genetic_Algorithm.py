@@ -12,19 +12,20 @@ lines = []
 variables = {}
 with open('config.txt', 'r') as file:
     lines.extend(file.readlines()[7:10])
+with open('config.txt', 'r') as file:
+    lines.extend(file.readlines()[1:5])
 
 for line in lines:
     key, value = line.strip().split(' = ')
     variables[key.strip()] = value.strip()
 
-
 population_size = int(variables['population_size'])
 num_generations = int(variables['num_generations'])
 mutation_rate = round(float(variables['mutation_rate']), 1)
 
-
 train_data = np.load('Data/train_data.npy')
 train_labels = np.load('Data/train_labels.npy')
+
 
 # Генетический алгоритм
 # Гиперпараметры генетического алгоритма
@@ -36,6 +37,7 @@ def generate_population(population_size):
         individual = generate_individual()
         population.append(individual)
     return population
+
 
 # Генерация случайного индивидуума
 def generate_individual():
@@ -63,7 +65,6 @@ def generate_individual():
             return_sequences = True
             layer = LSTM(units=units, activation=activation, return_sequences=return_sequences)
             individual.append(layer)
-
 
             if random.random() < 0.5:
                 dropout_rate = random.uniform(0.1, 0.5)
@@ -110,14 +111,15 @@ def evaluate_population(population):
         fitness_scores.append(fitness)
     return fitness_scores
 
+
 # Создание модели на основе индивидуума
 def create_model_from_individual(individual):
-    inputs = tf.keras.Input(shape=(20, 22))
+    inputs = tf.keras.Input(shape=(variables["block_size"], 22))
 
     if isinstance(individual[0], tf.keras.layers.Dense):
         x = tf.keras.layers.Flatten()(inputs)  # Преобразование в одномерный формат
-        x = tf.keras.layers.Dense(units=20 * 22)(x)  # Преобразование размерности
-        x = tf.keras.layers.Reshape((20, 22))(x)  # Изменение размерности перед LSTM
+        x = tf.keras.layers.Dense(units=variables["block_size"] * 22)(x)  # Преобразование размерности
+        x = tf.keras.layers.Reshape((variables["block_size"], 22))(x)  # Изменение размерности перед LSTM
     else:
         x = inputs
 
@@ -131,10 +133,13 @@ def create_model_from_individual(individual):
 
     return model
 
+
 # Оценка модели (приспособленность индивидуума)
 def evaluate_model(model, validation_split):
     # Разделение данных на обучающую и валидационную выборки
-    train_data_1, val_data, train_labels_1, val_labels = train_test_split(train_data, train_labels, test_size=validation_split, random_state=random.randint(1, 100))
+    train_data_1, val_data, train_labels_1, val_labels = train_test_split(train_data, train_labels,
+                                                                          test_size=validation_split,
+                                                                          random_state=random.randint(1, 100))
 
     train_loss, train_accuracy = model.evaluate(train_data_1, train_labels_1, verbose=0)
     val_loss, val_accuracy = model.evaluate(val_data, val_labels, verbose=0)
@@ -146,6 +151,7 @@ def evaluate_model(model, validation_split):
         return 0.01
     else:
         return diff_accuracy
+
 
 # Выбор родителей для скрещивания
 def select_parents(population, fitness_scores):
@@ -224,6 +230,7 @@ def roulette_wheel_selection(probabilities):
     # Если не был выбран ни один родитель, вернуть случайный индекс
     return random.randint(0, len(probabilities) - 1)
 
+
 def crossover_individuals(parent1, parent2):
     min_length = min(len(parent1), len(parent2))
     crossover_point = random.randint(0, min_length - 1)
@@ -249,6 +256,7 @@ def generate_random_layer():
 
     return layer
 
+
 def set_lstm_return_sequences(individual):
     lstm_indices = [i for i, layer in enumerate(individual) if isinstance(layer, LSTM)]
     if len(lstm_indices) <= 0:
@@ -273,17 +281,22 @@ def mutate_individual(individual, mutation_rate):
     for i, layer in enumerate(mutated_individual):
         if isinstance(layer, dict):  # Проверяем, является ли элемент словарем
             if random.random() < mutation_rate:
-                if 'batch_size' in layer and not batch_size_mutated and not any(isinstance(l, dict) and 'batch_size' in l for l in mutated_individual):  # Проверяем флаг и наличие словарей с batch_size
+                if 'batch_size' in layer and not batch_size_mutated and not any(
+                        isinstance(l, dict) and 'batch_size' in l for l in
+                        mutated_individual):  # Проверяем флаг и наличие словарей с batch_size
                     new_batch_size = layer['batch_size'] + random.randint(-64, 64)
                     new_batch_size = max(64, min(1024, new_batch_size))
                     layer['batch_size'] = new_batch_size
                     batch_size_mutated = True  # Устанавливаем флаг
 
-                elif 'epochs' in layer and not epochs_mutated and not any(isinstance(l, dict) and 'epochs' in l for l in mutated_individual):  # Проверяем флаг и наличие словарей с epochs
+                elif 'epochs' in layer and not epochs_mutated and not any(isinstance(l, dict) and 'epochs' in l for l in
+                                                                          mutated_individual):  # Проверяем флаг и наличие словарей с epochs
                     layer['epochs'] = 15
                     epochs_mutated = True  # Устанавливаем флаг
 
-                elif 'validation_split' in layer and not val_mutated and not any(isinstance(l, dict) and 'validation_split' in l for l in mutated_individual):  # Проверяем флаг и наличие словарей с validation_split
+                elif 'validation_split' in layer and not val_mutated and not any(
+                        isinstance(l, dict) and 'validation_split' in l for l in
+                        mutated_individual):  # Проверяем флаг и наличие словарей с validation_split
                     new_val_split = layer['validation_split'] + random.uniform(-0.1, 0.1)
                     new_val_split = max(0.1, min(0.7, new_val_split))
                     layer['validation_split'] = new_val_split
@@ -318,7 +331,7 @@ def mutate_individual(individual, mutation_rate):
             mutated_layer = LSTM(units=units, activation=activation, return_sequences=return_sequences)
         elif isinstance(layer, Dropout):
             rate = random.uniform(0.1, 0.5)
-            mutated_layer= Dropout(rate=rate)
+            mutated_layer = Dropout(rate=rate)
         else:
             mutated_layer = layer
 
@@ -339,7 +352,7 @@ def genetic_algorithm(population_size, num_generations, mutation_rate):
         best_individual = get_best_individual(population, fitness_scores)
         best_fitness_scores.append(max(fitness_scores))
 
-        print(f"Generation {generation+1}, Best Fitness: {max(fitness_scores)}, Best Individual: {best_individual}")
+        print(f"Generation {generation + 1}, Best Fitness: {max(fitness_scores)}, Best Individual: {best_individual}")
         np.save('best_individual.npy', best_individual)
         parents = select_parents(population, fitness_scores)
         offspring = crossover(parents, population_size)
@@ -353,6 +366,7 @@ def genetic_algorithm(population_size, num_generations, mutation_rate):
     print(f"Generation {num_generations}, Best Fitness: {max(fitness_scores)}, Best Individual: {best_individual}")
 
     return best_individual, best_fitness_scores
+
 
 # Применение генетического алгоритма к модели
 best_individual = genetic_algorithm(population_size, num_generations, mutation_rate)
