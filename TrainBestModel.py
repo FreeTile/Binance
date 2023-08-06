@@ -40,12 +40,12 @@ def data_generator(train_data, train_labels, batch_size):
 
 # Создание модели на основе индивидуума
 def create_model_from_individual(individual):
-    inputs = tf.keras.Input(shape=(20, 22))
+    inputs = tf.keras.Input(shape=(variables['block_size'], 22))
     print(individual)
     if isinstance(individual[0], tf.keras.layers.Dense):
         x = tf.keras.layers.Flatten()(inputs)  # Преобразование в одномерный формат
-        x = tf.keras.layers.Dense(units=20 * 22)(x)  # Преобразование размерности
-        x = tf.keras.layers.Reshape((20, 22))(x)  # Изменение размерности перед LSTM
+        x = tf.keras.layers.Dense(units=variables['block_size'] * 22)(x)  # Преобразование размерности
+        x = tf.keras.layers.Reshape((variables['block_size'], 22))(x)  # Изменение размерности перед LSTM
     else:
         x = inputs
 
