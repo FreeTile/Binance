@@ -22,7 +22,7 @@ for line in lines:
 population_size = int(variables['population_size'])
 num_generations = int(variables['num_generations'])
 mutation_rate = round(float(variables['mutation_rate']), 1)
-
+variables["block_size"] = int(variables["block_size"])
 train_data = np.load('Data/train_data.npy')
 train_labels = np.load('Data/train_labels.npy')
 
