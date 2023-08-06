@@ -16,7 +16,7 @@ api_key = variables['api_key']
 api_secret = variables['api_secret']
 
 client = Client(api_key, api_secret)
-bars = client.get_historical_klines("BTCUSDT", Client.KLINE_INTERVAL_5MINUTE, variables['date'])
+bars = client.get_historical_klines("BTCUSDT", Client.KLINE_INTERVAL_15MINUTE, variables['date'])
 
 data = pd.DataFrame(bars,
                     columns=['timestamp', 'open', 'high', 'low', 'close', 'volume', 'close_time', 'quote_asset_volume',
@@ -41,5 +41,5 @@ for i in range(len(data)):
         heads += data.iloc[i]['high'] - data.iloc[i]['close']
         legs += data.iloc[i]['open'] - data.iloc[i]['low']
 
-print('Среднее головы свечи: ', heads/len(data))
-print('Среднее ноги свечи: ', legs/len(data))
+print('Средняя верхняя тень свечи: ', heads/len(data))
+print('Средняя нижняя тень свечи: ', legs/len(data))

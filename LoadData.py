@@ -20,7 +20,7 @@ block_size = int(variables['block_size'])
 
 # Получение доступа к API биржи Binance
 client = Client(api_key, api_secret)
-bars = client.get_historical_klines("BTCUSDT", Client.KLINE_INTERVAL_5MINUTE, variables['date'])
+bars = client.get_historical_klines("BTCUSDT", Client.KLINE_INTERVAL_15MINUTE, variables['date'])
 
 # Подготовка данных для обучения нейросети
 data = pd.DataFrame(bars,
