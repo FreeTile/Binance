@@ -27,7 +27,7 @@ client = Client(api_key, api_secret)
 
 # Функция для получения последних 21 свечей
 def get_recent_candles():
-    candles = client.get_klines(symbol='BTCUSDT', interval=Client.KLINE_INTERVAL_5MINUTE, limit=21)
+    candles = client.get_klines(symbol='BTCUSDT', interval=Client.KLINE_INTERVAL_15MINUTE, limit=21)
     closed_candles = candles[:-1]
     return closed_candles
 
@@ -238,7 +238,7 @@ def run_script():
             amount = round(max(USDT / 10, 10.1), 2)
             if USDT > 10.15:
                 buy(amount)
-                stop_loss_order("sell", round(float(info["price"]) - 20, 2), round(amount / float(info["price"]), 5))
+                stop_loss_order("sell", round(float(info["price"]) - 46, 2), round(amount / float(info["price"]), 5))
                 buy_amount += amount
         else:
             print("Предсказание: цена упадёт")
@@ -249,13 +249,14 @@ def run_script():
             amount = round(max(BTC / 10, 10.1 / float(info["price"])), 5)
             if BTC > (10.15 / float(info["price"])):
                 sell(amount, info)
-                stop_loss_order("buy", round(float(info["price"]) + 20, 2), amount)
+                stop_loss_order("buy", round(float(info["price"]) + 45, 2), amount)
                 sell_amount += amount
         orders()
 
         current_time = int(time.time())
-        next_run_time = ((current_time // 300) + 1) * 300  # Округление до следующего времени, кратного 5 минутам
-        sleep_time = next_run_time - current_time
+        next_run_time = ((current_time // 900) + 1) * 900  # Округление до следующего времени, кратного 15 минутам
+        rounded_time = next_run_time - (next_run_time % 900)
+        sleep_time = rounded_time - current_time
         time.sleep(sleep_time)
 
 # Запуск скрипта
