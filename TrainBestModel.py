@@ -26,17 +26,6 @@ block_size = int(variables['block_size'])
 train_data = np.load('Data/train_data.npy')
 train_labels = np.load('Data/train_labels.npy')
 
-def data_generator(train_data, train_labels, batch_size):
-    num_samples = train_data.shape[0]
-    indices = np.arange(num_samples)
-    np.random.shuffle(indices)  # Перемешиваем индексы
-
-    while True:
-        for start_index in range(0, num_samples, batch_size):
-            end_index = min(start_index + batch_size, num_samples)
-            batch_indices = indices[start_index:end_index]
-            yield train_data[batch_indices], train_labels[batch_indices]
-
 
 # Создание модели на основе индивидуума
 def create_model_from_individual(individual):
@@ -64,14 +53,12 @@ with open(variables['from'], 'rb') as f:
     best_individual = pickle.load(f)
     best_individual = best_individual[0]
 batch_size = best_individual[-1]['batch_size']
-train_data_generator = data_generator(train_data, train_labels, batch_size)
 model = create_model_from_individual(best_individual)
 # Компиляция и обучение модели на тренировочных данных
 validation_split = best_individual[-1].get('validation_split', 0.3)
 
 model.compile(optimizer='adam', loss='binary_crossentropy', metrics='accuracy')
-model.fit(train_data_generator, batch_size=batch_size, epochs=epochs, steps_per_epoch=len(train_data) // batch_size,
-          validation_steps=len(train_data) // batch_size * validation_split)
+model.fit(train_data, train_labels, batch_size=batch_size, epochs=epochs, validation_split=validation_split)
 model.save(variables['save'])
 
 model = tf.keras.models.load_model(variables['save'])
