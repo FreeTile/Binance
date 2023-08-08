@@ -1,4 +1,5 @@
 # Импортирование необходимых библиотек
+import pickle
 import random
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
@@ -11,7 +12,7 @@ from binance.client import Client
 lines = []
 variables = {}
 with open('config.txt', 'r') as file:
-    lines.extend(file.readlines()[7:10])
+    lines.extend(file.readlines()[7:11])
 with open('config.txt', 'r') as file:
     lines.extend(file.readlines()[1:5])
 
@@ -353,7 +354,8 @@ def genetic_algorithm(population_size, num_generations, mutation_rate):
         best_fitness_scores.append(max(fitness_scores))
 
         print(f"Generation {generation + 1}, Best Fitness: {max(fitness_scores)}, Best Individual: {best_individual}")
-        np.save('best_individual.npy', best_individual)
+        with open(variables["save"], 'wb') as file:
+            pickle.dump(best_individual, file)
         parents = select_parents(population, fitness_scores)
         offspring = crossover(parents, population_size)
         mutated_offspring = mutate(offspring, mutation_rate)
@@ -372,4 +374,5 @@ def genetic_algorithm(population_size, num_generations, mutation_rate):
 best_individual = genetic_algorithm(population_size, num_generations, mutation_rate)
 
 # Сохранение лучших данных
-np.save('best_individual.npy', best_individual)
+with open(variables["save"], 'wb') as file:
+    pickle.dump(best_individual, file)

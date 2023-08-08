@@ -12,7 +12,7 @@ variables = {}
 with open('config.txt', 'r') as file:
     lines.extend(file.readlines()[1:3])
 with open('config.txt', 'r') as file:
-    lines.extend(file.readlines()[12:13])
+    lines.extend(file.readlines()[13:14])
 
 for line in lines:
     key, value = line.strip().split(' = ')

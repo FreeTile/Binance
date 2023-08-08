@@ -10,7 +10,7 @@ lines = []
 variables = {}
 epochs = 25
 with open('config.txt', 'r') as file:
-    lines.extend(file.readlines()[15:17])
+    lines.extend(file.readlines()[16:18])
 with open('config.txt', 'r') as file:
     lines.extend(file.readlines()[1:5])
 
