@@ -10,24 +10,24 @@ import os
 lines = []
 variables = {}
 with open('config.txt', 'r') as file:
-    lines.extend(file.readlines()[1:3])
-with open('config.txt', 'r') as file:
-    lines.extend(file.readlines()[13:14])
+    lines.extend(file.readlines()[1:19])
+
 
 for line in lines:
-    key, value = line.strip().split(' = ')
-    variables[key.strip()] = value.strip()
+    if '=' in line:
+        key, value = line.strip().split(' = ')
+        variables[key.strip()] = value.strip()
 
 api_key = variables['api_key']
 api_secret = variables['api_secret']
-model = tf.keras.models.load_model(variables['model'])
+model = tf.keras.models.load_model(f'models/trained_model_{variables["coin1"]}{variables["coin2"]}_{variables["clines_time"]}.h5')
 # Создайте экземпляр клиента Binance
 client = Client(api_key, api_secret)
 
 
 # Функция для получения последних 21 свечей
 def get_recent_candles():
-    candles = client.get_klines(symbol='BTCUSDT', interval=Client.KLINE_INTERVAL_15MINUTE, limit=21)
+    candles = client.get_klines(symbol=f'{variables["coin1"]}{variables["coin2"]}', interval=eval(f'Client.KLINE_INTERVAL_{variables["clines_time"]}'), limit=(int(variables["block_size"]) +1))
     closed_candles = candles[:-1]
     return closed_candles
 
@@ -115,7 +115,7 @@ def process_candles(data):
     mean_deviation = abs(typical_price - mean_price).rolling(window=20).mean()
     data['cci'] = (typical_price - mean_price) / (mean_deviation * 0.015)
 
-    block_size = 20
+    block_size = 10
 
     # Стандартизируем данные
 
@@ -160,6 +160,10 @@ def close_all_orders():
         result = client.cancel_order(symbol=symbol, orderId=order_id)
         if result['status'] == "CANCELED":
             print(f"Ордер {order_id} на символ {symbol} успешно закрыт.")
+        if order['side'] == "BUY":
+            sell_amount += int(order['amount'])
+        else:
+            buy_amount += int(order['amount'])
 
 def clear_console():
     # Очищаем консоль в зависимости от операционной системы
@@ -171,7 +175,7 @@ buy_amount = 0
 def stop_loss_order(side, stop_price, amount):
     if side == "buy":
         order = client.create_order(
-            symbol='BTCUSDT',
+            symbol=f'{variables["coin1"]}{variables["coin2"]}',
             side=Client.SIDE_BUY,
             type=Client.ORDER_TYPE_STOP_LOSS_LIMIT,
             timeInForce=Client.TIME_IN_FORCE_GTC,
@@ -181,7 +185,7 @@ def stop_loss_order(side, stop_price, amount):
         )
     elif side == "sell":
         order = client.create_order(
-            symbol='BTCUSDT',
+            symbol=f'{variables["coin1"]}{variables["coin2"]}',
             side=Client.SIDE_SELL,
             type=Client.ORDER_TYPE_STOP_LOSS_LIMIT,
             timeInForce=Client.TIME_IN_FORCE_GTC,
@@ -193,14 +197,14 @@ def stop_loss_order(side, stop_price, amount):
 def buy(amount):
     print("Покупка на сумму ", amount)
     order = client.order_market_buy(
-        symbol='BTCUSDT',
+        symbol=f'{variables["coin1"]}{variables["coin2"]}',
         quoteOrderQty=amount,
     )
 
 def sell(amount, info):
     print("Продажа на сумму ", round(amount * float(info["price"]),2))
     order = client.order_market_sell(
-        symbol='BTCUSDT',
+        symbol=f'{variables["coin1"]}{variables["coin2"]}',
         quantity=amount,
     )
 
@@ -213,49 +217,46 @@ def run_script():
         prediction = process_candles(candles)
         clear_console()
 
-        BTC_info = client.get_asset_balance(asset='BTC')
-        USDT_info = client.get_asset_balance(asset='USDT')
-        BTC = round(float(BTC_info["free"]), 5)
-        USDT = round(float(USDT_info["free"]), 2)
-        print('BTC balance: ', BTC)
-        print('USDT balance: ', USDT)
+        first_coin_balance_info = client.get_asset_balance(asset=variables["coin1"])
+        second_coin_balance_info = client.get_asset_balance(asset=variables["coin2"])
+        first_coin = round(float(first_coin_balance_info["free"]), 5)
+        second_coin = round(float(second_coin_balance_info["free"]), 2)
+        info = client.get_avg_price(symbol=f'{variables["coin1"]}{variables["coin2"]}')
+        balance = round(float(second_coin_balance_info["free"]) + float(first_coin_balance_info["free"]) * float(info["price"]), 2)
 
-        info = client.get_avg_price(symbol='BTCUSDT')
-        print("BTC price: ", info["price"])
-
-        balance = round(float(USDT_info["free"]) + float(BTC_info["free"]) * float(info["price"]), 2)
-        print("Примерный баланс в USDT", balance)
+        print(f'{variables["coin1"]} balance: ', first_coin)
+        print(f'{variables["coin2"]} balance: ', second_coin)
+        print(f'{variables["coin1"]} price: ', info["price"])
+        print(f'Rounded balance in {variables["coin2"]}', balance)
 
         with open("profit.txt", 'a') as file:
             file.write(str(balance) + '\n')
 
         if np.array_equal(prediction[0], [1, 0]):
             print("Предсказание: цена поднимается")
-            if sell_amount > 0 and (sell_amount * float(info["price"])) > USDT+0.5:
+            if sell_amount > 0 and (sell_amount * float(info["price"])) > second_coin+0.5:
                 sell_amount = round(sell_amount * float(info["price"]), 2)
                 buy(sell_amount)
             sell_amount = 0
-            amount = round(max(USDT / 10, 10.1), 2)
-            if USDT > 10.15:
+            amount = round(max(second_coin / 10, 10.1), 2)
+            if second_coin > 10.15:
                 buy(amount)
-                stop_loss_order("sell", round(float(info["price"]) - 46, 2), round(amount / float(info["price"]), 5))
-                buy_amount += amount
+                stop_loss_order("sell", round(float(info["price"]) - 100, 2), round(amount / float(info["price"]), 5))
         else:
             print("Предсказание: цена упадёт")
-            if buy_amount > 0 and buy_amount > (BTC * float(info["price"]) + 0.5):
+            if buy_amount > 0 and buy_amount > (first_coin * float(info["price"]) + 0.5):
                 buy_amount = round(buy_amount / float(info["price"]), 5)
                 sell(buy_amount, info)
             buy_amount = 0
-            amount = round(max(BTC / 10, 10.1 / float(info["price"])), 5)
-            if BTC > (10.15 / float(info["price"])):
+            amount = round(max(first_coin / 10, 10.1 / float(info["price"])), 5)
+            if first_coin > (10.15 / float(info["price"])):
                 sell(amount, info)
-                stop_loss_order("buy", round(float(info["price"]) + 45, 2), amount)
-                sell_amount += amount
+                stop_loss_order("buy", round(float(info["price"]) + 90, 2), amount)
         orders()
 
         current_time = int(time.time())
-        next_run_time = ((current_time // 900) + 1) * 900  # Округление до следующего времени, кратного 15 минутам
-        rounded_time = next_run_time - (next_run_time % 900)
+        next_run_time = ((current_time // 60 * int(variables["time_for_cycle_in_minutes"])) + 1) * 60 * int(variables["time_for_cycle_in_minutes"])  # Округление до следующего времени, кратного time_for_sycle_in_minutes минутам
+        rounded_time = next_run_time - (next_run_time % 60 * int(variables["time_for_cycle_in_minutes"]))
         sleep_time = rounded_time - current_time
         time.sleep(sleep_time)
 
