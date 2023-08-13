@@ -4,19 +4,20 @@ from binance.client import Client
 lines = []
 variables = {}
 with open('config.txt', 'r') as file:
-    lines.extend(file.readlines()[1:5])
+    lines.extend(file.readlines()[1:19])
 with open('config.txt', 'r') as file:
-    lines.extend(file.readlines()[7:10])
+    lines.extend(file.readlines()[8:11])
 
 for line in lines:
-    key, value = line.strip().split(' = ')
-    variables[key.strip()] = value.strip()
+    if '=' in line:
+        key, value = line.strip().split(' = ')
+        variables[key.strip()] = value.strip()
 
 api_key = variables['api_key']
 api_secret = variables['api_secret']
 
 client = Client(api_key, api_secret)
-bars = client.get_historical_klines("BTCUSDT", Client.KLINE_INTERVAL_15MINUTE, variables['date'])
+bars = client.get_historical_klines(f'{variables["coin1"]}{variables["coin2"]}', eval(f'Client.KLINE_INTERVAL_{variables["clines_time"]}'), variables['date'])
 
 data = pd.DataFrame(bars,
                     columns=['timestamp', 'open', 'high', 'low', 'close', 'volume', 'close_time', 'quote_asset_volume',

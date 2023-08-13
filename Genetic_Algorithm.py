@@ -1,30 +1,29 @@
 # Импортирование необходимых библиотек
 import random
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler
 import numpy as np
 from keras.layers import Dense, LSTM, Dropout
-import pandas as pd
 import tensorflow as tf
-from binance.client import Client
 
 lines = []
 variables = {}
 with open('config.txt', 'r') as file:
-    lines.extend(file.readlines()[7:10])
+    lines.extend(file.readlines()[1:19])
 with open('config.txt', 'r') as file:
-    lines.extend(file.readlines()[1:5])
+    lines.extend(file.readlines()[20:39])
+
 
 for line in lines:
-    key, value = line.strip().split(' = ')
-    variables[key.strip()] = value.strip()
+    if '=' in line:
+        key, value = line.strip().split(' = ')
+        variables[key.strip()] = value.strip()
 
 population_size = int(variables['population_size'])
 num_generations = int(variables['num_generations'])
 mutation_rate = round(float(variables['mutation_rate']), 1)
 variables["block_size"] = int(variables["block_size"])
-train_data = np.load('Data/train_data.npy')
-train_labels = np.load('Data/train_labels.npy')
+train_data = np.load(f'Data/train_data{variables["coin1"]}{variables["coin2"]}_{variables["clines_time"]}.npy')
+train_labels = np.load(f'Data/train_labels{variables["coin1"]}{variables["coin2"]}_{variables["clines_time"]}.npy')
 
 
 # Генетический алгоритм
@@ -43,7 +42,7 @@ def generate_population(population_size):
 def generate_individual():
     individual = []
 
-    num_layers = random.randint(3, 10)
+    num_layers = random.randint(5, 15)
 
     for index in range(num_layers):
         layer_type = random.choice(['dense', 'lstm'])
@@ -73,7 +72,7 @@ def generate_individual():
 
     batch_size = random.randint(1024, 8192)
     validation_split = random.uniform(0.2, 0.5)
-    epochs = 15
+    epochs = 20
 
     set_lstm_return_sequences(individual)  # Перемещение перед выводом слоев
 
@@ -353,7 +352,7 @@ def genetic_algorithm(population_size, num_generations, mutation_rate):
         best_fitness_scores.append(max(fitness_scores))
 
         print(f"Generation {generation + 1}, Best Fitness: {max(fitness_scores)}, Best Individual: {best_individual}")
-        np.save('best_individual.npy', best_individual)
+        np.save(f'best_individual_{variables["coin1"]}{variables["coin2"]}_{variables["clines_time"]}.npy', best_individual)
         parents = select_parents(population, fitness_scores)
         offspring = crossover(parents, population_size)
         mutated_offspring = mutate(offspring, mutation_rate)
@@ -372,4 +371,4 @@ def genetic_algorithm(population_size, num_generations, mutation_rate):
 best_individual = genetic_algorithm(population_size, num_generations, mutation_rate)
 
 # Сохранение лучших данных
-np.save('best_individual.npy', best_individual)
+np.save(f'best_individual_{variables["coin1"]}{variables["coin2"]}_{variables["clines_time"]}.npy', best_individual)

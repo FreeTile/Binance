@@ -1,17 +1,38 @@
 For_all
-api_key = Your api key
-api_secret = Your api secret
-block_size = 20
+api_key = your api key
+api_secret = your api secret
+block_size = 10
 date = 1080 days ago UTC
+coin1 = BTC
+coin2 = USDT
+clines_time = 1HOUR
+time_for_cycle_in_minutes = 60
+
+
+
+
+
+
+
+
+
 
 Genetic_algorithm
-population_size = 10
-num_generations = 10
-mutation_rate = 0.2
+population_size = 20
+num_generations = 20
+mutation_rate = 0.3
 
-Trading
-model = models/trained_model.h5
 
-Training
-from = models/best_individual.pkl
-save = models/trained_model.h5
+
+
+
+
+
+
+
+
+
+
+
+
+

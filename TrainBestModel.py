@@ -1,30 +1,26 @@
 # Импортирование необходимых библиотек
 import pickle
 import numpy as np
-import pandas as pd
 import tensorflow as tf
-from binance.client import Client
-from sklearn.preprocessing import StandardScaler
 
 lines = []
 variables = {}
-epochs = 25
+epochs = 30
 with open('config.txt', 'r') as file:
-    lines.extend(file.readlines()[15:17])
-with open('config.txt', 'r') as file:
-    lines.extend(file.readlines()[1:5])
+    lines.extend(file.readlines()[1:19])
 
 for line in lines:
-    key, value = line.strip().split(' = ')
-    variables[key.strip()] = value.strip()
+    if '=' in line:
+        key, value = line.strip().split(' = ')
+        variables[key.strip()] = value.strip()
 block_size = variables['block_size']
 api_key = variables['api_key']
 api_secret = variables['api_secret']
 block_size = int(variables['block_size'])
 
 # Получение доступа к API биржи Binance
-train_data = np.load('Data/train_data.npy')
-train_labels = np.load('Data/train_labels.npy')
+train_data = np.load(f'Data/train_data_{variables["coin1"]}{variables["coin2"]}_{variables["clines_time"]}.npy')
+train_labels = np.load(f'Data/train_labels_{variables["coin1"]}{variables["coin2"]}_{variables["clines_time"]}.npy')
 
 
 # Создание модели на основе индивидуума
@@ -49,7 +45,7 @@ def create_model_from_individual(individual):
     return model
 
 
-with open(variables['from'], 'rb') as f:
+with open(f'models/best_individual_{variables["coin1"]}{variables["coin2"]}_{variables["clines_time"]}.pkl', 'rb') as f:
     best_individual = pickle.load(f)
     best_individual = best_individual[0]
 batch_size = best_individual[-1]['batch_size']
@@ -59,9 +55,8 @@ validation_split = best_individual[-1].get('validation_split', 0.3)
 
 model.compile(optimizer='adam', loss='binary_crossentropy', metrics='accuracy')
 model.fit(train_data, train_labels, batch_size=batch_size, epochs=epochs, validation_split=validation_split)
-model.save(variables['save'])
+model.save(f'models/trained_model_{variables["coin1"]}{variables["coin2"]}_{variables["clines_time"]}.h5')
 
-model = tf.keras.models.load_model(variables['save'])
 up_count = 0
 down_count = 0
 

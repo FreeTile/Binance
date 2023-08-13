@@ -7,11 +7,12 @@ from binance.client import Client
 lines = []
 variables = {}
 with open('config.txt', 'r') as file:
-    lines.extend(file.readlines()[1:5])
+    lines.extend(file.readlines()[1:19])
 
 for line in lines:
-    key, value = line.strip().split(' = ')
-    variables[key.strip()] = value.strip()
+    if '=' in line:
+        key, value = line.strip().split(' = ')
+        variables[key.strip()] = value.strip()
 
 api_key = variables['api_key']
 api_secret = variables['api_secret']
@@ -20,7 +21,7 @@ block_size = int(variables['block_size'])
 
 # Получение доступа к API биржи Binance
 client = Client(api_key, api_secret)
-bars = client.get_historical_klines("BTCUSDT", Client.KLINE_INTERVAL_15MINUTE, variables['date'])
+bars = client.get_historical_klines(f'{variables["coin1"]}{variables["coin2"]}', eval(f'Client.KLINE_INTERVAL_{variables["clines_time"]}'), variables['date'])
 
 # Подготовка данных для обучения нейросети
 data = pd.DataFrame(bars,
@@ -132,6 +133,6 @@ for i in range(len(data) - block_size):
 train_data = np.array(train_data_blocks)
 train_data[np.isnan(train_data)] = 0
 
-np.save('Data/train_data.npy', train_data)
-np.save('Data/train_labels.npy', train_labels)
+np.save(f'Data/train_data_{variables["coin1"]}{variables["coin2"]}_{variables["clines_time"]}.npy', train_data)
+np.save(f'Data/train_labels_{variables["coin1"]}{variables["coin2"]}_{variables["clines_time"]}.npy', train_labels)
 
