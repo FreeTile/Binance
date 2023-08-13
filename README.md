@@ -1,3 +1,5 @@
+The main discussion takes place on the Russian forum 2ch/ai/ https://2ch.hk/ai/res/385611.html#453778
+
 !I am not responsible for your lost funds, follow further instructions at your own risk!
 
 # Binance
