@@ -1,7 +1,17 @@
 # Импортирование необходимых библиотек
+import os
 import pickle
 import numpy as np
 import tensorflow as tf
+
+os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"  # Индекс дискретной видеокарты, которую вы хотите использовать
+
+# Установка конфигурации TensorFlow для использования выбранной видеокарты
+config = tf.compat.v1.ConfigProto()
+config.gpu_options.allow_growth = True
+sess = tf.compat.v1.Session(config=config)
+tf.compat.v1.keras.backend.set_session(sess)
 
 lines = []
 variables = {}

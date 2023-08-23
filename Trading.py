@@ -20,14 +20,13 @@ for line in lines:
 
 api_key = variables['api_key']
 api_secret = variables['api_secret']
-model = tf.keras.models.load_model(f'models/trained_model_{variables["coin1"]}{variables["coin2"]}_{variables["clines_time"]}.keras')
+model = tf.keras.models.load_model(variables["model_path"])
 # Создайте экземпляр клиента Binance
 client = Client(api_key, api_secret)
 
-Client.KL
 # Функция для получения последних 21 свечей
 def get_recent_candles():
-    candles = client.get_klines(symbol=f'{variables["coin1"]}{variables["coin2"]}', interval=eval(f'Client.KLINE_INTERVAL_{variables["clines_time"]}'), limit=(int(variables["block_size"]) +1))
+    candles = client.get_klines(symbol=f'{variables["coin1"]}{variables["coin2"]}', interval=eval(f'Client.KLINE_INTERVAL_{variables["clines_time"]}'), limit=(int(variables["block_size"])) +1)
     closed_candles = candles[:-1]
     return closed_candles
 
@@ -115,7 +114,7 @@ def process_candles(data):
     mean_deviation = abs(typical_price - mean_price).rolling(window=20).mean()
     data['cci'] = (typical_price - mean_price) / (mean_deviation * 0.015)
 
-    block_size = 10
+    block_size = int(variables["block_size"])
 
     # Стандартизируем данные
 
@@ -241,7 +240,7 @@ def run_script():
             amount = round(max(second_coin / 10, 10.1), 2)
             if second_coin > 10.15:
                 buy(amount)
-                stop_loss_order("sell", round(float(info["price"]) - variables["average_down_shadow"], 2), round(amount / float(info["price"]), 5))
+                stop_loss_order("sell", round(float(info["price"]) - round(float(variables["average_down_shadow"]),2), 2), round(amount / float(info["price"]), 5))
         else:
             print("Предсказание: цена упадёт")
             if buy_amount > 0 and buy_amount > (first_coin * float(info["price"]) + 0.5):
@@ -251,15 +250,18 @@ def run_script():
             amount = round(max(first_coin / 10, 10.1 / float(info["price"])), 5)
             if first_coin > (10.15 / float(info["price"])):
                 sell(amount, info)
-                stop_loss_order("buy", round(float(info["price"]) + variables["average_upper_shadow"], 2), amount)
+                stop_loss_order("buy", round(float(info["price"]) + round(float(variables["average_upper_shadow"]),2), 2), amount)
         orders()
 
         current_time = int(time.time())
-        next_run_time = ((current_time // 60 * int(variables["time_for_cycle_in_minutes"])) + 1) * 60 * int(variables["time_for_cycle_in_minutes"])  # Округление до следующего времени, кратного time_for_sycle_in_minutes минутам
-        rounded_time = next_run_time - (next_run_time % 60 * int(variables["time_for_cycle_in_minutes"]))
-        sleep_time = rounded_time - current_time
-        time.sleep(sleep_time)
+        time_for_cycle_in_minutes = int(variables["time_for_cycle_in_minutes"])
 
+        next_run_time = ((current_time // (60 * time_for_cycle_in_minutes)) + 1) * (60 * time_for_cycle_in_minutes)
+        rounded_time = next_run_time - (next_run_time % (60 * time_for_cycle_in_minutes))
+        sleep_time = rounded_time - current_time
+
+        if sleep_time > 0:
+            time.sleep(sleep_time)
 # Запуск скрипта
 run_script()
 
