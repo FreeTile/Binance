@@ -1,38 +1,15 @@
-For_all
-api_key = your api key
-api_secret = your api secret
-block_size = 10
-date = 1080 days ago UTC
+api_key = your key
+api_secret = your secret
+block_size = 15
+date = 720
 coin1 = BTC
 coin2 = USDT
 clines_time = 1HOUR
 time_for_cycle_in_minutes = 60
-
-
-
-
-
-
-
-
-
-
-Genetic_algorithm
 population_size = 20
 num_generations = 20
-mutation_rate = 0.3
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+mutation_rate = 0.4
+best_individual_path = choose your path
+model_path = choose your path
+average_upper_shadow = 73.61166290443931
+average_down_shadow = 78.07603634890279

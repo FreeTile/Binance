@@ -7,7 +7,7 @@ lines = []
 variables = {}
 epochs = 30
 with open('config.txt', 'r') as file:
-    lines.extend(file.readlines()[1:19])
+    lines.extend(file.readlines()[0:19])
 
 for line in lines:
     if '=' in line:
@@ -45,7 +45,7 @@ def create_model_from_individual(individual):
     return model
 
 
-with open(f'models/best_individual_{variables["coin1"]}{variables["coin2"]}_{variables["clines_time"]}.pkl', 'rb') as f:
+with open(f'individuals/best_individual_{variables["coin1"]}{variables["coin2"]}_{variables["clines_time"]}.pkl', 'rb') as f:
     best_individual = pickle.load(f)
     best_individual = best_individual[0]
 batch_size = best_individual[-1]['batch_size']
@@ -55,7 +55,7 @@ validation_split = best_individual[-1].get('validation_split', 0.3)
 
 model.compile(optimizer='adam', loss='binary_crossentropy', metrics='accuracy')
 model.fit(train_data, train_labels, batch_size=batch_size, epochs=epochs, validation_split=validation_split)
-model.save(f'models/trained_model_{variables["coin1"]}{variables["coin2"]}_{variables["clines_time"]}.h5')
+model.save(f'models/trained_model_{variables["coin1"]}{variables["coin2"]}_{variables["clines_time"]}.keras')
 
 up_count = 0
 down_count = 0
@@ -99,3 +99,7 @@ print(f"Точность предсказания повышения: {accuracy_
 print(f"Количество правильных предсказаний падения: {down}/{down_count}")
 print(f"Точность предсказания понижения: {accuracy_down * 100}%")
 print(f"Средняя точность предсказания: {weighted_average * 100}%")
+
+print(' ')
+print("---------------------------------------------------------------------------------------------------------------")
+print(' ')

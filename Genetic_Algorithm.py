@@ -8,10 +8,7 @@ import tensorflow as tf
 lines = []
 variables = {}
 with open('config.txt', 'r') as file:
-    lines.extend(file.readlines()[1:19])
-with open('config.txt', 'r') as file:
-    lines.extend(file.readlines()[20:39])
-
+    lines.extend(file.readlines()[0:19])
 
 for line in lines:
     if '=' in line:
@@ -22,8 +19,8 @@ population_size = int(variables['population_size'])
 num_generations = int(variables['num_generations'])
 mutation_rate = round(float(variables['mutation_rate']), 1)
 variables["block_size"] = int(variables["block_size"])
-train_data = np.load(f'Data/train_data{variables["coin1"]}{variables["coin2"]}_{variables["clines_time"]}.npy')
-train_labels = np.load(f'Data/train_labels{variables["coin1"]}{variables["coin2"]}_{variables["clines_time"]}.npy')
+train_data = np.load(f'Data/train_data_{variables["coin1"]}{variables["coin2"]}_{variables["clines_time"]}.npy')
+train_labels = np.load(f'Data/train_labels_{variables["coin1"]}{variables["coin2"]}_{variables["clines_time"]}.npy')
 
 
 # Генетический алгоритм
@@ -372,3 +369,7 @@ best_individual = genetic_algorithm(population_size, num_generations, mutation_r
 
 # Сохранение лучших данных
 np.save(f'best_individual_{variables["coin1"]}{variables["coin2"]}_{variables["clines_time"]}.npy', best_individual)
+
+print(' ')
+print("---------------------------------------------------------------------------------------------------------------")
+print(' ')
