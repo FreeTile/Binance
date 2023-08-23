@@ -1,3 +1,6 @@
+The main discussion takes place on the Russian forum 2ch/ai/ https://2ch.hk/ai/res/385611.html#453778
+My Telegram - https://t.me/JoJobBizzareAdventure
+
 !I am not responsible for your lost funds, follow further instructions at your own risk!
 
 # Binance
@@ -8,6 +11,9 @@ Sorry, there is a lot of junk in my code, it is my first attempt to create a wor
 
 ## Overall
 There are several scripts that can automatically buy and sell kryptocurrency wich use a neural network. All that you need are an API key and a API secret from your Binance account (you can find instructions on how to create it [here](https://www.binance.com/en/support/faq/how-to-create-api-keys-on-binance-360002502072)). This project already has one best individual for training and one trained model, so you can just run Trading.py with your API settings. More details about each script are can be found below the "Getting started" section.
+
+## Fast start
+Open cmd in your project folder. Run interface.py. At this time there only one language supported, Russian.
 
 ## Getting started
 There are two scripts, wich are called Average_shadows and LoadData. Average shadows calculate the average numbers between an open price and the lowest price and between the highest price and a close price or vice versa.
