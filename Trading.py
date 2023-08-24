@@ -152,6 +152,7 @@ def orders():
         print("Нет открытых ордеров")
 
 def close_all_orders():
+    global buy_amount, sell_amount
     open_orders = client.get_open_orders()
     for order in open_orders:
         symbol = order['symbol']
@@ -160,9 +161,9 @@ def close_all_orders():
         if result['status'] == "CANCELED":
             print(f"Ордер {order_id} на символ {symbol} успешно закрыт.")
         if order['side'] == "BUY":
-            sell_amount += int(order['amount'])
+            sell_amount += round(float(order['origQty']), 5)
         else:
-            buy_amount += int(order['amount'])
+            buy_amount += round(float(order['origQty']), 5)
 
 def clear_console():
     # Очищаем консоль в зависимости от операционной системы
@@ -200,8 +201,8 @@ def buy(amount):
         quoteOrderQty=amount,
     )
 
-def sell(amount, info):
-    print("Продажа на сумму ", round(amount * float(info["price"]),2))
+def sell(amount):
+    print("Продажа на сумму ", round(amount,2))
     order = client.order_market_sell(
         symbol=f'{variables["coin1"]}{variables["coin2"]}',
         quantity=amount,
@@ -237,17 +238,17 @@ def run_script():
                 sell_amount = round(sell_amount * float(info["price"]), 2)
                 buy(sell_amount)
             sell_amount = 0
-            amount = round(max(second_coin / 10, 10.1), 2)
+            amount = round(max(second_coin / 10, 10.5), 2)
             if second_coin > 10.15:
                 buy(amount)
                 stop_loss_order("sell", round(float(info["price"]) - round(float(variables["average_down_shadow"]),2), 2), round(amount / float(info["price"]), 5))
         else:
             print("Предсказание: цена упадёт")
             if buy_amount > 0 and buy_amount > (first_coin * float(info["price"]) + 0.5):
-                buy_amount = round(buy_amount / float(info["price"]), 5)
+                buy_amount = round(buy_amount, 5)
                 sell(buy_amount, info)
             buy_amount = 0
-            amount = round(max(first_coin / 10, 10.1 / float(info["price"])), 5)
+            amount = round(max(first_coin / 10, 10.5 / float(info["price"])), 5)
             if first_coin > (10.15 / float(info["price"])):
                 sell(amount, info)
                 stop_loss_order("buy", round(float(info["price"]) + round(float(variables["average_upper_shadow"]),2), 2), amount)
