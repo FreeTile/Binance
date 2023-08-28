@@ -140,9 +140,10 @@ def process_candles(data):
 
 
 def orders():
-    open_orders = client.get_open_orders()
+    open_orders = client.futures_get_open_orders()
     if len(open_orders) > 0:
         for order in open_orders:
+            print('--------------------')
             print("Символ:", order["symbol"])
             print("Тип ордера:", order["side"])
             print("Количество:", order["origQty"])
@@ -151,107 +152,93 @@ def orders():
     else:
         print("Нет открытых ордеров")
 
-def close_all_orders():
-    global buy_amount, sell_amount
-    open_orders = client.get_open_orders()
-    for order in open_orders:
-        symbol = order['symbol']
-        order_id = order['orderId']
-        result = client.cancel_order(symbol=symbol, orderId=order_id)
-        if result['status'] == "CANCELED":
-            print(f"Ордер {order_id} на символ {symbol} успешно закрыт.")
-        if order['side'] == "BUY":
-            sell_amount += round(float(order['origQty']), 5)
-        else:
-            buy_amount += round(float(order['origQty']), 5)
-
-def clear_console():
-    # Очищаем консоль в зависимости от операционной системы
-    os.system('cls' if os.name == 'nt' else 'clear')
-
-sell_amount = 0
-buy_amount = 0
+def create_position(side, quantity, stop_loss_price):
+    if side == "long":
+        order = client.futures_create_order(
+            symbol=f'{variables["coin1"].upper()}{variables["coin2"].upper()}',
+            side=Client.SIDE_BUY,
+            type=Client.FUTURE_ORDER_TYPE_MARKET,
+            quantity=quantity,
+        )
+        stop_loss_order("sell", stop_loss_price, quantity)
+    elif side == "short":
+        order = client.futures_create_order(
+            symbol=f'{variables["coin1"].upper()}{variables["coin2"].upper()}',
+            side=Client.SIDE_SELL,
+            type=Client.FUTURE_ORDER_TYPE_MARKET,
+            quantity=quantity,
+        )
+        stop_loss_order("buy", stop_loss_price, quantity)
 
 def stop_loss_order(side, stop_price, amount):
     if side == "buy":
-        order = client.create_order(
-            symbol=f'{variables["coin1"]}{variables["coin2"]}',
+        order = client.futures_create_order(
+            symbol=f'{variables["coin1"].upper()}{variables["coin2"].upper()}',
             side=Client.SIDE_BUY,
-            type=Client.ORDER_TYPE_STOP_LOSS_LIMIT,
-            timeInForce=Client.TIME_IN_FORCE_GTC,
+            type=Client.FUTURE_ORDER_TYPE_STOP_MARKET,
             quantity=amount,
-            stopPrice=stop_price,
-            price=stop_price + 5,
+            stopPrice=stop_price
         )
     elif side == "sell":
-        order = client.create_order(
-            symbol=f'{variables["coin1"]}{variables["coin2"]}',
+        order = client.futures_create_order(
+            symbol=f'{variables["coin1"].upper()}{variables["coin2"].upper()}',
             side=Client.SIDE_SELL,
-            type=Client.ORDER_TYPE_STOP_LOSS_LIMIT,
-            timeInForce=Client.TIME_IN_FORCE_GTC,
+            type=Client.FUTURE_ORDER_TYPE_STOP_MARKET,
             quantity=amount,
-            stopPrice=stop_price,
-            price=stop_price - 5,
+            stopPrice=stop_price
         )
 
-def buy(amount):
-    print("Покупка на сумму ", amount)
-    order = client.order_market_buy(
-        symbol=f'{variables["coin1"]}{variables["coin2"]}',
-        quoteOrderQty=amount,
-    )
+def close_positions():
+    symbol = f'{variables["coin1"].upper()}{variables["coin2"].upper()}'
 
-def sell(amount):
-    print("Продажа на сумму ", round(amount,6))
-    order = client.order_market_sell(
-        symbol=f'{variables["coin1"]}{variables["coin2"]}',
-        quantity=amount,
-    )
+    position_info = client.futures_position_information(symbol=symbol)
+
+    for position in position_info:
+        if float(position["positionAmt"]) != 0:
+            side = Client.SIDE_SELL if float(position["positionAmt"]) > 0 else Client.SIDE_BUY
+            quantity = abs(float(position["positionAmt"]))
+            order = client.futures_create_order(
+                symbol=symbol,
+                side=side,
+                type=Client.FUTURE_ORDER_TYPE_MARKET,
+                quantity=quantity
+            )
 
 def run_script():
-    global sell_amount, buy_amount
+    firsttime = 1
     while True:
         print("Текущее время:", datetime.datetime.now())
-        close_all_orders()
+        close = client.futures_cancel_all_open_orders(symbol=variables["coin1"] + variables["coin2"])
+        close_positions()
         candles = get_recent_candles()
         prediction = process_candles(candles)
-        clear_console()
 
-        first_coin_balance_info = client.get_asset_balance(asset=variables["coin1"])
-        second_coin_balance_info = client.get_asset_balance(asset=variables["coin2"])
-        first_coin = round(float(first_coin_balance_info["free"]), 5)
-        second_coin = round(float(second_coin_balance_info["free"]), 2)
-        info = client.get_avg_price(symbol=f'{variables["coin1"]}{variables["coin2"]}')
-        balance = round(float(second_coin_balance_info["free"]) + float(first_coin_balance_info["free"]) * float(info["price"]), 2)
-
-        print(f'{variables["coin1"]} balance: ', first_coin)
+        first_coin_balance_info = next((item for item in client.futures_account_balance() if item["asset"] == variables["coin2"]), None)
+        second_coin = round(float(first_coin_balance_info["balance"]), 2)
+        info = client.futures_symbol_ticker(symbol=f'{variables["coin1"].upper()}{variables["coin2"].upper()}')
+        print(info)
         print(f'{variables["coin2"]} balance: ', second_coin)
         print(f'{variables["coin1"]} price: ', info["price"])
-        print(f'Rounded balance in {variables["coin2"]}', balance)
+        if firsttime == 0:
+            if (predictions == "up" and float(previous_price) < float(info["price"])) or (predictions == "down" and float(previous_price) > float(info["price"])):
+                with open("profit.txt", 'a') as file:
+                    file.write(f"Prediction was right. Balance now {second_coin}" + '\n')
+            else:
+                with open("profit.txt", 'a') as file:
+                    file.write(f"Prediction was wrong. Balance now {second_coin}" + '\n')
 
-        with open("profit.txt", 'a') as file:
-            file.write(str(balance) + '\n')
+        previous_price = info["price"]
+
+        amount = round((second_coin / float(info["price"])) * 2,0)
 
         if np.array_equal(prediction[0], [1, 0]):
             print("Предсказание: цена поднимается")
-            if sell_amount > 0 and (sell_amount * float(info["price"])) > second_coin+0.5:
-                sell_amount = round(sell_amount * float(info["price"]), 2)
-                buy(sell_amount)
-            sell_amount = 0
-            amount = round(max(second_coin / 10, 10.5), 2)
-            if second_coin > 10.15:
-                buy(amount)
-                stop_loss_order("sell", round(float(info["price"]) - round(float(variables["average_down_shadow"]),2), 2), round(amount / float(info["price"]), 5))
+            create_position("long", amount, round(float(info["price"]) - round(float(variables["average_down_shadow"]), 2), 2))
+            predictions = "up"
         else:
             print("Предсказание: цена упадёт")
-            if buy_amount > 0 and buy_amount > (first_coin * float(info["price"]) + 0.5):
-                buy_amount = round(buy_amount, 5)
-                sell(buy_amount)
-            buy_amount = 0
-            amount = round(max(first_coin / 10, 10.5 / float(info["price"])), 5)
-            if first_coin > (10.15 / float(info["price"])):
-                sell(amount)
-                stop_loss_order("buy", round(float(info["price"]) + round(float(variables["average_upper_shadow"]),2), 2), amount)
+            create_position("short",  amount, round(float(info["price"]) + float(variables["average_upper_shadow"]), 5))
+            predictions = "down"
         orders()
 
         current_time = int(time.time())
@@ -263,6 +250,7 @@ def run_script():
 
         if sleep_time > 0:
             time.sleep(sleep_time)
+        firsttime = 0
 # Запуск скрипта
 run_script()
 

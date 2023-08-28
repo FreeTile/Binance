@@ -125,6 +125,7 @@ train_labels = np.array(train_labels)
 scaler = StandardScaler()
 scaled_data = scaler.fit_transform(data)
 
+
 train_data_blocks = []
 for i in range(len(data) - block_size):
     train_data_block = scaled_data[i:i + block_size]

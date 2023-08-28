@@ -1,20 +1,9 @@
 # Импортирование необходимых библиотек
-import os
 import random
 from sklearn.model_selection import train_test_split
 import numpy as np
 from keras.layers import Dense, LSTM, Dropout
 import tensorflow as tf
-from keras import backend as K
-
-os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"  # Индекс дискретной видеокарты, которую вы хотите использовать
-
-# Установка конфигурации TensorFlow для использования выбранной видеокарты
-config = tf.compat.v1.ConfigProto()
-config.gpu_options.allow_growth = True
-sess = tf.compat.v1.Session(config=config)
-tf.compat.v1.keras.backend.set_session(sess)
 
 lines = []
 variables = {}
@@ -80,7 +69,7 @@ def generate_individual():
 
     batch_size = random.randint(1024, 8192)
     validation_split = random.uniform(0.2, 0.5)
-    epochs = 20
+    epochs = 10
 
     set_lstm_return_sequences(individual)  # Перемещение перед выводом слоев
 

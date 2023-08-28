@@ -15,7 +15,7 @@ tf.compat.v1.keras.backend.set_session(sess)
 
 lines = []
 variables = {}
-epochs = 30
+epochs = 20
 with open('config.txt', 'r') as file:
     lines.extend(file.readlines()[0:19])
 
@@ -55,7 +55,7 @@ def create_model_from_individual(individual):
     return model
 
 
-with open(f'individuals/best_individual_{variables["coin1"]}{variables["coin2"]}_{variables["clines_time"]}.pkl', 'rb') as f:
+with open(f'individuals/best_individual_{variables["clines_time"]}.pkl', 'rb') as f:
     best_individual = pickle.load(f)
     best_individual = best_individual[0]
 batch_size = best_individual[-1]['batch_size']
