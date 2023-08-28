@@ -1,5 +1,7 @@
 # Импортирование необходимых библиотек
 import random
+
+from keras.src.layers import Attention
 from sklearn.model_selection import train_test_split
 import numpy as np
 from keras.layers import Dense, LSTM, Dropout
@@ -42,6 +44,11 @@ def generate_individual():
     num_layers = random.randint(5, 15)
 
     for index in range(num_layers):
+        if index == 0 and random.random() < 0.5:
+            attention_units = random.randint(16, 256)
+            attention_layer = Attention(units=attention_units)
+            individual.append(attention_layer)
+
         layer_type = random.choice(['dense', 'lstm'])
 
         if layer_type == 'dense':
@@ -69,21 +76,9 @@ def generate_individual():
 
     batch_size = random.randint(1024, 8192)
     validation_split = random.uniform(0.2, 0.5)
-    epochs = 10
+    epochs = 20
 
     set_lstm_return_sequences(individual)  # Перемещение перед выводом слоев
-
-    # Вывод имен слоев и параметров return_sequences
-    print("Layers:")
-    for layer in individual:
-        if isinstance(layer, LSTM):
-            layer_name = layer.__class__.__name__
-            layer_return_sequences = layer.return_sequences
-            print(f"{layer_name} (Return Sequences: {layer_return_sequences})")
-        else:
-            layer_name = layer.__class__.__name__
-            print(layer_name)
-    print("")
 
     individual.append({'batch_size': batch_size, 'validation_split': validation_split, 'epochs': epochs})
 
@@ -270,33 +265,31 @@ def set_lstm_return_sequences(individual):
 def mutate_individual(individual, mutation_rate):
     mutated_individual = individual.copy()
 
-    batch_size_mutated = False  # Флаг для отслеживания применения мутации к batch_size
-    epochs_mutated = False  # Флаг для отслеживания применения мутации к epochs
-    val_mutated = False  # Флаг для отслеживания применения мутации к validation_split
+    batch_size_mutated = False
+    epochs_mutated = False
+    val_mutated = False
 
     for i, layer in enumerate(mutated_individual):
-        if isinstance(layer, dict):  # Проверяем, является ли элемент словарем
+        if isinstance(layer, dict):
             if random.random() < mutation_rate:
                 if 'batch_size' in layer and not batch_size_mutated and not any(
-                        isinstance(l, dict) and 'batch_size' in l for l in
-                        mutated_individual):  # Проверяем флаг и наличие словарей с batch_size
+                        isinstance(l, dict) and 'batch_size' in l for l in mutated_individual):
                     new_batch_size = layer['batch_size'] + random.randint(-64, 64)
                     new_batch_size = max(64, min(1024, new_batch_size))
                     layer['batch_size'] = new_batch_size
-                    batch_size_mutated = True  # Устанавливаем флаг
+                    batch_size_mutated = True
 
                 elif 'epochs' in layer and not epochs_mutated and not any(isinstance(l, dict) and 'epochs' in l for l in
-                                                                          mutated_individual):  # Проверяем флаг и наличие словарей с epochs
+                                                                          mutated_individual):
                     layer['epochs'] = 15
-                    epochs_mutated = True  # Устанавливаем флаг
+                    epochs_mutated = True
 
                 elif 'validation_split' in layer and not val_mutated and not any(
-                        isinstance(l, dict) and 'validation_split' in l for l in
-                        mutated_individual):  # Проверяем флаг и наличие словарей с validation_split
+                        isinstance(l, dict) and 'validation_split' in l for l in mutated_individual):
                     new_val_split = layer['validation_split'] + random.uniform(-0.1, 0.1)
                     new_val_split = max(0.1, min(0.7, new_val_split))
                     layer['validation_split'] = new_val_split
-                    val_mutated = True  # Устанавливаем флаг
+                    val_mutated = True
 
     for i, layer in enumerate(mutated_individual):
         if random.random() < mutation_rate:
@@ -308,6 +301,8 @@ def mutate_individual(individual, mutation_rate):
             elif len(mutated_individual) > 1:
                 if isinstance(layer, Dropout):
                     mutated_individual.pop(i)
+                elif isinstance(layer, Attention):
+                    continue  # Пропускаем удаление слоя внимания
                 elif i < len(mutated_individual) - 1 and isinstance(mutated_individual[i + 1], Dropout):
                     mutated_individual.pop(i + 1)
                     if len(mutated_individual) > 0 and isinstance(mutated_individual[-1], Dropout):
