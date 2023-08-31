@@ -1,11 +1,8 @@
 # Импортирование необходимых библиотек
-import os
 import pickle
 import numpy as np
 import tensorflow as tf
-
-os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"  # Индекс дискретной видеокарты, которую вы хотите использовать
+from tensorflow.keras.layers import Dense, LSTM, Dropout, Attention
 
 # Установка конфигурации TensorFlow для использования выбранной видеокарты
 config = tf.compat.v1.ConfigProto()
@@ -60,9 +57,9 @@ with open(f'individuals/best_individual_{variables["clines_time"]}.pkl', 'rb') a
     best_individual = best_individual[0]
 batch_size = best_individual[-1]['batch_size']
 model = create_model_from_individual(best_individual)
-# Компиляция и обучение модели на тренировочных данных
 validation_split = best_individual[-1].get('validation_split', 0.3)
 
+# Компиляция и обучение модели на тренировочных данных
 model.compile(optimizer='adam', loss='binary_crossentropy', metrics='accuracy')
 model.fit(train_data, train_labels, batch_size=batch_size, epochs=epochs, validation_split=validation_split)
 model.save(f'models/trained_model_{variables["coin1"]}{variables["coin2"]}_{variables["clines_time"]}.keras')

@@ -1,11 +1,15 @@
 # Импортирование необходимых библиотек
+import pickle
 import random
-
-from keras.src.layers import Attention
 from sklearn.model_selection import train_test_split
 import numpy as np
-from keras.layers import Dense, LSTM, Dropout
+from tensorflow.keras.layers import Dense, LSTM, Dropout, Attention
 import tensorflow as tf
+
+if tf.test.gpu_device_name():
+    print('Default GPU Device: {}'.format(tf.test.gpu_device_name()))
+else:
+    print("No GPU available.")
 
 lines = []
 variables = {}
@@ -46,41 +50,48 @@ def generate_individual():
     for index in range(num_layers):
         if index == 0 and random.random() < 0.5:
             attention_units = random.randint(16, 256)
-            attention_layer = Attention(units=attention_units)
+            attention_layer = tf.keras.layers.Attention()
             individual.append(attention_layer)
+            dense_layer = tf.keras.layers.Dense(units=attention_units)
+            individual.append(dense_layer)
 
         layer_type = random.choice(['dense', 'lstm'])
 
         if layer_type == 'dense':
             units = random.randint(16, 256)
             activation = random.choice(['relu', 'sigmoid', 'tanh'])
-            layer = Dense(units=units, activation=activation)
+            layer = tf.keras.layers.Dense(units=units, activation=activation)
             individual.append(layer)
 
             if random.random() < 0.5:
                 dropout_rate = random.uniform(0.1, 0.5)
-                dropout_layer = Dropout(rate=dropout_rate)
+                dropout_layer = tf.keras.layers.Dropout(rate=dropout_rate)
                 individual.append(dropout_layer)
 
         elif layer_type == 'lstm':
             units = random.randint(16, 256)
             activation = random.choice(['tanh', 'sigmoid', 'relu'])
             return_sequences = True
-            layer = LSTM(units=units, activation=activation, return_sequences=return_sequences)
+            layer = tf.keras.layers.LSTM(units=units, activation=activation, return_sequences=return_sequences)
             individual.append(layer)
 
             if random.random() < 0.5:
                 dropout_rate = random.uniform(0.1, 0.5)
-                dropout_layer = Dropout(rate=dropout_rate)
+                dropout_layer = tf.keras.layers.Dropout(rate=dropout_rate)
                 individual.append(dropout_layer)
 
     batch_size = random.randint(1024, 8192)
     validation_split = random.uniform(0.2, 0.5)
-    epochs = 20
+    epochs = 5
 
-    set_lstm_return_sequences(individual)  # Перемещение перед выводом слоев
+    set_lstm_return_sequences(individual)
 
     individual.append({'batch_size': batch_size, 'validation_split': validation_split, 'epochs': epochs})
+
+    print('Layers for individual:')
+    for layer in individual:
+        print(layer)
+    print('-----------------------------')
 
     return individual
 
@@ -107,17 +118,19 @@ def evaluate_population(population):
 def create_model_from_individual(individual):
     inputs = tf.keras.Input(shape=(variables["block_size"], 22))
 
-    if isinstance(individual[0], tf.keras.layers.Dense):
-        x = tf.keras.layers.Flatten()(inputs)  # Преобразование в одномерный формат
-        x = tf.keras.layers.Dense(units=variables["block_size"] * 22)(x)  # Преобразование размерности
-        x = tf.keras.layers.Reshape((variables["block_size"], 22))(x)  # Изменение размерности перед LSTM
-    else:
-        x = inputs
+    x = inputs
 
     for i, layer in enumerate(individual[:-1]):
-        x = layer(x)
+        if isinstance(layer, tf.keras.layers.Attention):
+            x = layer([x, x])
+        elif isinstance(layer, tf.keras.layers.Dense):
+            x = layer(x)
+        elif isinstance(layer, tf.keras.layers.LSTM):
+            x = layer(x)
+        elif isinstance(layer, tf.keras.layers.Dropout):
+            x = layer(x)
 
-    x = tf.keras.layers.Flatten()(x)  # Преобразование в одномерный формат
+    x = tf.keras.layers.Flatten()(x)
 
     outputs = tf.keras.layers.Dense(units=2, activation='softmax')(x)
     model = tf.keras.Model(inputs=inputs, outputs=outputs)
@@ -136,7 +149,7 @@ def evaluate_model(model, validation_split):
     val_loss, val_accuracy = model.evaluate(val_data, val_labels, verbose=0)
 
     # Разница между точностью и потерями
-    diff_accuracy = 1 - (train_loss + val_loss) / 2
+    diff_accuracy = 1 - ((train_loss + val_loss)  / 2)
 
     if diff_accuracy < 0:
         return 0.01
@@ -265,33 +278,15 @@ def set_lstm_return_sequences(individual):
 def mutate_individual(individual, mutation_rate):
     mutated_individual = individual.copy()
 
-    batch_size_mutated = False
-    epochs_mutated = False
-    val_mutated = False
+    if random.random() < mutation_rate:
+        new_batch_size = mutated_individual[-1]['batch_size'] + random.randint(-64, 64)
+        new_batch_size = max(64, min(1024, new_batch_size))
+        mutated_individual[-1]['batch_size'] = new_batch_size
+        new_val_split = mutated_individual[-1]['validation_split'] + random.uniform(-0.1, 0.1)
+        new_val_split = max(0.1, min(0.7, new_val_split))
+        mutated_individual[-1]['validation_split'] = new_val_split
 
-    for i, layer in enumerate(mutated_individual):
-        if isinstance(layer, dict):
-            if random.random() < mutation_rate:
-                if 'batch_size' in layer and not batch_size_mutated and not any(
-                        isinstance(l, dict) and 'batch_size' in l for l in mutated_individual):
-                    new_batch_size = layer['batch_size'] + random.randint(-64, 64)
-                    new_batch_size = max(64, min(1024, new_batch_size))
-                    layer['batch_size'] = new_batch_size
-                    batch_size_mutated = True
-
-                elif 'epochs' in layer and not epochs_mutated and not any(isinstance(l, dict) and 'epochs' in l for l in
-                                                                          mutated_individual):
-                    layer['epochs'] = 15
-                    epochs_mutated = True
-
-                elif 'validation_split' in layer and not val_mutated and not any(
-                        isinstance(l, dict) and 'validation_split' in l for l in mutated_individual):
-                    new_val_split = layer['validation_split'] + random.uniform(-0.1, 0.1)
-                    new_val_split = max(0.1, min(0.7, new_val_split))
-                    layer['validation_split'] = new_val_split
-                    val_mutated = True
-
-    for i, layer in enumerate(mutated_individual):
+    for i, layer in reversed(list(enumerate(mutated_individual[2:]))):
         if random.random() < mutation_rate:
             if random.random() < 0.5:
                 new_layer = generate_random_layer()
@@ -306,11 +301,11 @@ def mutate_individual(individual, mutation_rate):
                 elif i < len(mutated_individual) - 1 and isinstance(mutated_individual[i + 1], Dropout):
                     mutated_individual.pop(i + 1)
                     if len(mutated_individual) > 0 and isinstance(mutated_individual[-1], Dropout):
-                        mutated_individual.pop(i - 1)
+                        mutated_individual.pop(i)
                 else:
                     mutated_individual.pop(i)
 
-    for i, layer in enumerate(mutated_individual):
+    for i, layer in enumerate(mutated_individual[2:]):
         if isinstance(layer, Dense):
             units = random.randint(32, 256)
             activation = random.choice(['relu', 'sigmoid', 'tanh'])
@@ -328,9 +323,13 @@ def mutate_individual(individual, mutation_rate):
 
         mutated_individual[i] = mutated_layer
 
+    del mutated_individual[-2:]
     set_lstm_return_sequences(mutated_individual)
     return mutated_individual
 
+def save_individual(filename, individual):
+    with open('individuals/' + filename, 'wb') as file:
+        pickle.dump(individual, file)
 
 # Генетический алгоритм
 def genetic_algorithm(population_size, num_generations, mutation_rate):
@@ -344,7 +343,8 @@ def genetic_algorithm(population_size, num_generations, mutation_rate):
         best_fitness_scores.append(max(fitness_scores))
 
         print(f"Generation {generation + 1}, Best Fitness: {max(fitness_scores)}, Best Individual: {best_individual}")
-        np.save(f'best_individual_{variables["coin1"]}{variables["coin2"]}_{variables["clines_time"]}.npy', best_individual)
+        save_individual(f'best_individual_{variables["clines_time"]}.pkl',
+                best_individual)
         parents = select_parents(population, fitness_scores)
         offspring = crossover(parents, population_size)
         mutated_offspring = mutate(offspring, mutation_rate)
@@ -363,7 +363,8 @@ def genetic_algorithm(population_size, num_generations, mutation_rate):
 best_individual = genetic_algorithm(population_size, num_generations, mutation_rate)
 
 # Сохранение лучших данных
-np.save(f'best_individual_{variables["coin1"]}{variables["coin2"]}_{variables["clines_time"]}.npy', best_individual)
+save_individual(f'best_individual_{variables["clines_time"]}.pkl',
+        best_individual)
 
 print(' ')
 print("---------------------------------------------------------------------------------------------------------------")
